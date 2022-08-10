@@ -26,7 +26,18 @@ The name of a related topic. The value appears on the line below the ".LINK" key
 Repeat the .LINK keyword for each related topic.
 #>
 
-# Logging
+################################################################################
+#region #*      User-definable Variables
+################################################################################
+$MenuItem = "Run", "Edit", "View", "Delete" # example menu item list
+
+#endregion
+
+
+################################################################################
+#region #*      Logging Initialization
+################################################################################
+
 $LogFolder = "logs"
 if ( -not ( Test-Path $LogFolder ) ) {
     New-Item $FolderName -ItemType Directory
@@ -35,13 +46,24 @@ if ( -not ( Test-Path $LogFolder ) ) {
 
 Start-Transcript -Append "$LogFolder\$(Get-Date -f yyyy-MM-dd)_$$Verb-$$Noun.txt"
 
-# Imports & Dependency Handling
+#endregion
+
+
+################################################################################
+#region #*      Imports & Dependency Handling
+################################################################################
+
 If ( -not ( Get-Module -ListAvailable -Name ModuleName ) ) {
   Install-Module ModuleName
   Import-Module ModuleName
 }
+#endregion
 
-# Config File Handling
+
+################################################################################
+#region #*      Config File Handling
+################################################################################
+
 function Get-Config {
   param (
     [string]$ConfigFilePath
@@ -53,12 +75,18 @@ function Get-Config {
   }
 }
 
-# User Menu (if needed)
+#endregion
+
+
+################################################################################
+#region #*      User Menu (if needed)
+################################################################################
 function Show-Menu {
   param (
-    [string]$Title = 'My Menu'
+    [string]$Title = 'My Menu',
     [string[]]$MenuItems
   )
+
   Clear-Host
   Write-Host "============================================================"
   Write-Host $MenuTitle
@@ -67,31 +95,47 @@ function Show-Menu {
   ForEach ( $MenuItem in $MenuItems ) {
     Write-Host $array.IndexOf($item) + ": " + $MenuItem
   }
+  Write-Host "Q. Quit"
   
   Write-Host "============================================================"
-
-  $MenuItem = Read-Host "Select an option: "
-  Return $MenuItem
 }
-# Sundry Functions
 
-# Main Function
+#endregion
+
+
+################################################################################
+#region #*      Supporting Functions
+################################################################################
+
+#endregion
+
+
+################################################################################
+#region #*      Main Program Loop
+################################################################################
+
 function Verb-Noun {
   [CmdletBinding()]
   param (
     
   )
+  
+  # Load Config File
+  Get-Config -ConfigFilePath "config.conf"
 
   do {
-    Show-Menu
-    $selection = Read-Host "Please make a selection"
+    Show-Menu -MenuItems $MenuItems
+    $selection = (Read-Host "Select an option: ").toLower()
     switch ($selection)
     {
       '1' {
+        # do thing here (eg assign var, call function, etc)
         'You chose option #1'
       } '2' {
+        # do thing here (eg assign var, call function, etc)
         'You chose option #2'
       } '3' {
+        # do thing here (eg assign var, call function, etc)
         'You chose option #3'
       }
     }
@@ -99,7 +143,10 @@ function Verb-Noun {
   }
   until ($selection -eq 'q')
 }
+
+#endregion
+
 # Stop Logging
 Stop-Transcript
 
-# Dev References )not user references, which should be included in .LINKs at top)
+# Dev References (not user references, which should be included in .LINKs at top)

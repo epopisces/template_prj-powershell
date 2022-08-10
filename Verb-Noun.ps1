@@ -26,59 +26,80 @@ The name of a related topic. The value appears on the line below the ".LINK" key
 Repeat the .LINK keyword for each related topic.
 #>
 
-# Imports
-
 # Logging
+$LogFolder = "logs"
+if ( -not ( Test-Path $LogFolder ) ) {
+    New-Item $FolderName -ItemType Directory
+    Write-Host "Created logging folder in local directory"
+}
 
-# Dependency Handling
+Start-Transcript -Append "$LogFolder\$(Get-Date -f yyyy-MM-dd)_$$Verb-$$Noun.txt"
+
+# Imports & Dependency Handling
+If ( -not ( Get-Module -ListAvailable -Name ModuleName ) ) {
+  Install-Module ModuleName
+  Import-Module ModuleName
+}
 
 # Config File Handling
+function Get-Config {
+  param (
+    [string]$ConfigFilePath
+  )
+  Get-Content $ConfigFilePath | ForEach-Object -Begin { $Config=@{} } -process { 
+    $Key = [regex]::split($_,'='); If( ( $Key[0].CompareTo("") -ne 0 ) -and ( $Key[0].StartsWith("[") -ne $True ) ) { 
+      $Config.Add($Key[0], $Key[1])
+    }
+  }
+}
 
 # User Menu (if needed)
+function Show-Menu {
+  param (
+    [string]$Title = 'My Menu'
+    [string[]]$MenuItems
+  )
+  Clear-Host
+  Write-Host "============================================================"
+  Write-Host $MenuTitle
+  Write-Host "============================================================"
+  
+  ForEach ( $MenuItem in $MenuItems ) {
+    Write-Host $array.IndexOf($item) + ": " + $MenuItem
+  }
+  
+  Write-Host "============================================================"
 
+  $MenuItem = Read-Host "Select an option: "
+  Return $MenuItem
+}
 # Sundry Functions
 
 # Main Function
+function Verb-Noun {
+  [CmdletBinding()]
+  param (
+    
+  )
+
+  do {
+    Show-Menu
+    $selection = Read-Host "Please make a selection"
+    switch ($selection)
+    {
+      '1' {
+        'You chose option #1'
+      } '2' {
+        'You chose option #2'
+      } '3' {
+        'You chose option #3'
+      }
+    }
+    pause
+  }
+  until ($selection -eq 'q')
+}
+# Stop Logging
+Stop-Transcript
 
 # Dev References )not user references, which should be included in .LINKs at top)
-
-import logging, argparse    #? remove argparse if the script won't accept arguments
-#? from tools.{toolname} import {toolname}_api as {toolname}
-
-#? Optional imports that may be helpful
-#?   toml (configuration file format for scripts)
-#?   re (regex)
-#?   os (get files or folders, or environment variables)
-
-class PrimaryClass(object):
-    """Oneline description (can have longer description below, if desired)
-    
-    Attributes:
-        attr1 (str):        A required or optional attribute used in __init__
-        attr2 (bool):       Another required or optional attribute used in __init__
-
-    Methods:    
-        method1()           One line explanation of method
-        method2()           One line explanation of method
-        method3()           One line explanation of method
-    
-    """
-    
-    def __init__(self):
-        #? any stuff that needs to happen when this is initialized (like grabbing credentials,
-        #? authentication, setting attributes equal to an initial value) happens here
-        return
-
-if __name__ == '__main__':
-    # * Init logging
-
-    # * Init argument handling.  Will automatically provide '-h, --help' functionality
-    #? See https://docs.python.org/3/howto/argparse.html for more details
-    parser = argparse.ArgumentParser(description="Write a brief description of the script here")
-    parser.add_argument('-e','--examplearg', default=False, type=str, help='an example string arg')
-
-    args = parser.parse_args() #? Any argument can be referenced by args.argname, eg 'args.examplearg'
-
-    # * Init Class
-    classexample = PrimaryClass()
-    print(classexample.__doc__)

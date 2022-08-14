@@ -1,0 +1,10 @@
+{
+  "references": "https://helpful.link.here",
+  "arg1" : "value1",
+  "dev" : {
+    "arg2" : "value2"
+  },
+  "prod" : {
+    "arg3" : "value3"
+  }
+}

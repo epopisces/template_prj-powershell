@@ -119,27 +119,27 @@ function Show-Menu {
     $Menu
   )
 
-  $CenteredTitle = ("| $(" " * ( ( 55 - $MenuTitle.Length ) / 2 ) ) $MenuTitle $( " " * ( ( 55 - $MenuTitle.Length ) / 2 ) )").substring(0, 59)+"|"
+  $CenteredTitle = ("│ $(" " * ( ( 53 - $MenuTitle.Length ) / 2 ) ) $MenuTitle $( " " * ( ( 54 - $MenuTitle.Length ) / 2 ) ) ").substring(0, 59)+"│"
 
   Clear-Host
-  Write-Host "|============================================================|"
+  Write-Host "┌──────────────────────────────────────────────────────────┐"
   Write-Host $CenteredTitle
-  Write-Host "|============================================================|"
+  Write-Host "│==========================================================│"
   
   $MenuIndex = 0
   ForEach ( $MenuSection in $Menu.Keys ) {
-    Write-Host ("|$(" " * ( ( 56 - $MenuSection.Length ) / 2)) $MenuSection $(" " * ( ( 56 - $MenuSection.Length ) / 2))").substring(0, 58)"|"
+    Write-Host ("│$(" " * ( ( 56 - $MenuSection.Length ) / 2)) $MenuSection $(" " * ( ( 56 - $MenuSection.Length ) / 2))").substring(0, 58)"│"
     
     ForEach ( $MenuItem in $Menu[$MenuSection] ) {
       $MenuIndex++
-      Write-Host ("| $MenuIndex. $MenuItem").PadRight(58," ")"|"
+      Write-Host ("│ $MenuIndex. $MenuItem").PadRight(58," ")"│"
     }
     
-    Write-Host "|                                                           |"
+    Write-Host "│                                                          │"
   }
 
   
-  Write-Host "============================================================"
+  Write-Host "└──────────────────────────────────────────────────────────┘"
 }
 
 #endregion
@@ -153,8 +153,8 @@ $Config = Get-Config -ConfigFilePath $ConfigFilePath
 
 
 do {
-  Show-Menu -MenuItems $MenuItems
-  $selection = (Read-Host "Select an option: ").toLower()
+  Show-Menu -Menu $Menu
+  $selection = (Read-Host "Select an option (or 'Q' to quit): ").toLower()
   switch ($selection)
   {
     '1' {

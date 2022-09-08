@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-A brief description of the function or script. This keyword can be used only once in each topic.
+A PowerShell script that... (brief description of the function or script. This keyword can be used only once in each topic.)
 
 .DESCRIPTION
-A detailed description of the function or script. This keyword can be used only once in each topic.
+This script will...(detailed description of the function or script. This keyword can be used only once in each topic.)
 
 .PARAMETER <parameter>
 The description of a parameter. Add a .PARAMETER keyword for each parameter in the function or script syntax.
@@ -18,7 +18,7 @@ The .NET types of objects that can be piped to the function or script. You can a
 The .NET type of the objects that the cmdlet returns. You can also include a description of the returned objects.
 
 .NOTES
-Additional information about the function or script.
+@Author: =epopisces (github.com/epopisces)
 
 .LINK
 The name of a related topic. The value appears on the line below the ".LINK" keyword and must be preceded by a comment symbol # or included in the comment block.
@@ -27,17 +27,11 @@ Repeat the .LINK keyword for each related topic.
 #>
 
 ################################################################################
-#region #*      User-definable Variables
+#region #*      Variables
 ################################################################################
 #? The following variables can be modified by the user.
 $ConfigFilePath = "config.conf" # default config file path
 $LogFolderPath = "logs"
-#endregion
-
-
-################################################################################
-#region #*      Global Variables
-################################################################################
 
 $Menu = [ordered]@{
   "Header1" = "Run", "Edit", "View", "Delete"; # example menu item list
@@ -72,6 +66,17 @@ Start-Transcript -Append "$LogFolderPath\$(Get-Date -f yyyy-MM-dd)_Verb-Noun.txt
 #   Install-Module ModuleName
 #   Import-Module ModuleName
 # }
+
+function Confirm-Dependency {
+  # Check if a non-PS module dependency is installed or not, eg Azure CLI
+  $azCli = az version | ConvertFrom-Json
+  if ($?) {   # if prior command doesn't error out
+    #? further testing here, eg checking return value
+  } else {
+    Write-Host "Dependency not installed"
+    Write-Host "Please install the dependency and try again"
+  }
+}
 #endregion
 
 
@@ -122,24 +127,24 @@ function Show-Menu {
   $CenteredTitle = ("│ $(" " * ( ( 53 - $MenuTitle.Length ) / 2 ) ) $MenuTitle $( " " * ( ( 54 - $MenuTitle.Length ) / 2 ) ) ").substring(0, 59)+"│"
 
   Clear-Host
-  Write-Host "┌──────────────────────────────────────────────────────────┐"
+  Write-Host "____________________________________________________________"
   Write-Host $CenteredTitle
-  Write-Host "│==========================================================│"
+  Write-Host "|==========================================================|"
   
   $MenuIndex = 0
   ForEach ( $MenuSection in $Menu.Keys ) {
-    Write-Host ("│$(" " * ( ( 56 - $MenuSection.Length ) / 2)) $MenuSection $(" " * ( ( 56 - $MenuSection.Length ) / 2))").substring(0, 58)"│"
+    Write-Host ("|$(" " * ( ( 56 - $MenuSection.Length ) / 2)) $MenuSection $(" " * ( ( 56 - $MenuSection.Length ) / 2))").substring(0, 58)"|"
     
     ForEach ( $MenuItem in $Menu[$MenuSection] ) {
       $MenuIndex++
-      Write-Host ("│ $MenuIndex. $MenuItem").PadRight(58," ")"│"
+      Write-Host ("| $MenuIndex. $MenuItem").PadRight(58," ")"|"
     }
     
-    Write-Host "│                                                          │"
+    Write-Host "|                                                          |"
   }
 
   
-  Write-Host "└──────────────────────────────────────────────────────────┘"
+  Write-Host "|__________________________________________________________|"
 }
 
 #endregion

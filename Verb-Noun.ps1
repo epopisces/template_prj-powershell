@@ -126,7 +126,6 @@ function Verb-Noun {
 #region #*      CLI Menu
 ################################################################################
 
-#! only needed for submenus populated via other functions against API or other data srcs
 function Build-Menu {
   param (
     [object[]]$config
@@ -134,18 +133,19 @@ function Build-Menu {
 
   $submenu = [ordered]@{}
 
-  ForEach ( $item in $config.environments.$($config.currentEnv).virtualMachines ) {
-    $itemName = $item.name
-    if ( $item.powerState -eq "VM running" ) {
-      $submenu["$itemName | $($item.powerState)"] = "Stop", "Remote into VM", "Refresh"
-    }
-    else {
-      $submenu["$itemName | $($item.powerState)"] = "Start", "Refresh"
-    }
-  }
+  #! here submenus could be populated from add'l data present in object
+  # ForEach ( $item in $config.environments.$($config.currentEnv).virtualMachines ) {
+  #   $itemName = $item.name
+  #   if ( $item.powerState -eq "VM running" ) {
+  #     $submenu["$itemName | $($item.powerState)"] = "Stop", "Remote into VM", "Refresh"
+  #   }
+  #   else {
+  #     $submenu["$itemName | $($item.powerState)"] = "Start", "Refresh"
+  #   }
+  # }
 
   $generalMenu = [ordered]@{
-    "Header1" = "Run", "Edit", "View", "Delete"; # example menu item list
+    "Header1" = "Run", "Edit", "View"; # example menu item list
     "Header2" = "Create", "Read", "Update", "Delete"; # example menu item list
   }
 

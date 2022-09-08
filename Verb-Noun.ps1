@@ -39,11 +39,6 @@ Repeat the .LINK keyword for each related topic.
 param ([string]$ConfigFilePath = "config.conf", [bool]$debug=$false)
 $LogFolderPath = "logs"
 
-$Menu = [ordered]@{
-  "Header1" = "Run", "Edit", "View", "Delete"; # example menu item list
-  "Header2" = "Create", "Read", "Update", "Delete"; # example menu item list
-}
-
 $commandHistory = [ordered]@{}
 $commandCount = 0
 
@@ -91,30 +86,32 @@ Start-Transcript -Append "$LogFolderPath\$(Get-Date -f yyyy-MM-dd)_Verb-Noun.txt
 
 
 ################################################################################
-#region #*      Config File Handling
-################################################################################
-
-function Get-Config {
-  param (
-    [string]$ConfigFilePath
-  )
-  # Get-Content $ConfigFilePath | ForEach-Object -Begin { $Config=@{} } -process { 
-  #   $Key = [regex]::split($_,'='); If( ( $Key[0].CompareTo("") -ne 0 ) -and ( $Key[0].StartsWith("[") -ne $True ) ) { 
-  #     $Config.Add($Key[0], $Key[1])
-  #   }
-  # }
-
-  $Config = Get-Content -Path $ConfigFilePath | ConvertFrom-Json
-
-  return $Config
-}
-
-#endregion
-
-
-################################################################################
 #region #*      Supporting Functions
 ################################################################################
+
+function Initialize-FromConfig {
+  param (
+    [string]$configFilePath,
+    [bool]$debug=$false,
+    [string]$env=$false
+  )
+
+  $config = Get-Content -Path $configFilePath | ConvertFrom-Json
+  
+  # overrides from params
+  if ( $debug -eq $true ) {
+    $config.debug = $true
+  }
+
+  if ( $env -ne $false ) {
+    $config | Add-Member -MemberType NoteProperty -Name "currentEnv" -Value $env
+  } else {
+    $config | Add-Member -MemberType NoteProperty -Name "currentEnv" -Value $config.defaultEnvironment
+  }
+
+  return $config
+}
+
 function Verb-Noun {
   [CmdletBinding()]
   param (
@@ -126,35 +123,157 @@ function Verb-Noun {
 
 
 ################################################################################
-#region #*      User Menu (if needed)
+#region #*      CLI Menu
 ################################################################################
-function Show-Menu {
+
+#! only needed for submenus populated via other functions against API or other data srcs
+function Build-Menu {
   param (
-    [string]$MenuTitle = 'My Menu',
-    $Menu
+    [object[]]$config
   )
 
-  $CenteredTitle = ("│ $(" " * ( ( 53 - $MenuTitle.Length ) / 2 ) ) $MenuTitle $( " " * ( ( 54 - $MenuTitle.Length ) / 2 ) ) ").substring(0, 59)+"│"
+  $submenu = [ordered]@{}
 
-  Clear-Host
-  Write-Host "____________________________________________________________"
-  Write-Host $CenteredTitle
-  Write-Host "|==========================================================|"
-  
-  $MenuIndex = 0
-  ForEach ( $MenuSection in $Menu.Keys ) {
-    Write-Host ("|$(" " * ( ( 56 - $MenuSection.Length ) / 2)) $MenuSection $(" " * ( ( 56 - $MenuSection.Length ) / 2))").substring(0, 58)"|"
-    
-    ForEach ( $MenuItem in $Menu[$MenuSection] ) {
-      $MenuIndex++
-      Write-Host ("| $MenuIndex. $MenuItem").PadRight(58," ")"|"
+  ForEach ( $item in $config.environments.$($config.currentEnv).virtualMachines ) {
+    $itemName = $item.name
+    if ( $item.powerState -eq "VM running" ) {
+      $submenu["$itemName | $($item.powerState)"] = "Stop", "Remote into VM", "Refresh"
     }
-    
-    Write-Host "|                                                          |"
+    else {
+      $submenu["$itemName | $($item.powerState)"] = "Start", "Refresh"
+    }
   }
 
+  $generalMenu = [ordered]@{
+    "Header1" = "Run", "Edit", "View", "Delete"; # example menu item list
+    "Header2" = "Create", "Read", "Update", "Delete"; # example menu item list
+  }
+
+  return $submenu + $generalmenu
+}
+
+function Show-Menu {
+  param (
+    [string]$menuTitle = 'My menu',
+    [string]$lastAction = $false,
+    [string]$debug = $false,
+    $menu
+  )
+
+  $centeredTitle = ("| $(" " * ( ( 54 - $menuTitle.Length ) / 2)) $menuTitle $(" " * ( ( 54 - $menuTitle.Length ) / 2))").substring(0, 58)+" |"
+  if (!( $debug )) {
+    Clear-Host
+  }
+
+  if ( $lastAction -ne $false ) {
+    Write-Host $lastAction -ForegroundColor DarkGreen
+    Write-Host ""
+  }
+  Write-Host " __________________________________________________________ "
+  Write-Host $centeredTitle
+  Write-Host "|==========================================================|"
+  $menuIndex = 0
+  $menuOptions = [ordered]@{}
+
+  ForEach ( $menuSection in $menu.Keys ) {
+    Write-Host "|" -NoNewLine
+
+    if ( $menuSection -Like "*|*" ) { 
+      
+      $color = "DarkCyan"
+      $context = $menuSection.split("|")[0].trim()
+      
+      $commandHistory["INFO: Display $context Menu section"] = "$menuSection"
+    } else { 
+      $color = "DarkGray" 
+      $context = ""
+    }
+
+    Write-Host ("$(" " * ( ( 57 - $menuSection.Length ) / 2)) $menuSection $(" " * ( ( 57 - $menuSection.Length ) / 2))").substring(0, 58) -ForegroundColor $color -NoNewLine
+    Write-Host "|"
+    
+    ForEach ( $menuItem in $menu[$menuSection] ) {
+      $menuIndex += 1
+      $menuOptions["$menuIndex"] = $menuItem, $context
+      Write-Host ("| $menuIndex. $menuItem").PadRight(58," ")"|"
+    }
+
+  }
   
   Write-Host "|__________________________________________________________|"
+  return $menuOptions
+}
+
+function Show-DebugOutput {
+  param (
+    [object[]]$config
+  )
+
+  if ( $config.debug ) {
+    Clear-Host
+    ForEach ( $command in $commandHistory.Keys ) {
+      Write-Host "--$($command)-------------------------------------".substring( 0, 60 ) -ForegroundColor DarkGreen
+      Write-Host $commandHistory[$command]
+      Write-Host ""
+    }
+    Pause # in case they ran the script via double-click, prevents term from closing
+  }
+}
+
+function Select-MenuOption {
+  param (
+    [object[]]$config,
+    [string]$lastAction = $false,
+    [string]$debug = $false,
+    $menu
+  )
+
+  do {
+    $menuOptions = Show-Menu -LastAction $lastAction -Menu $menu -Debug $config.debug
+    $selectNum = (Read-Host "Select an option (or 'Q' to quit): ").toLower()
+    
+    if ( $selectNum -eq "q" ) {
+      $action = 'q' 
+    } else {
+      $action, $vmName = $menuOptions[$selectNum]
+    }
+  
+    switch ($action) {
+      'Run' {
+        # Description
+        $result = "doing a thing here"
+        $lastAction = "Ran by $result."
+      } 'Edit' {
+        # Description
+        $result = "doing a thing here"
+        $lastAction = "Edited by $result."
+      } 'View' {
+        # Description
+        $result = "doing a thing here"
+        $lastAction = "Viewed by $result."
+      } 'Delete' {
+        # Description
+        $result = "doing a thing here"
+        $lastAction = "Deleted by $result."
+      } 'Create' {
+        # Description
+        $result = "doing a thing here"
+        $lastAction = "Created by $result."
+      } 'Update' {
+        # Description
+        $result = "doing a thing here"
+        $lastAction = "Updated by $result."
+      } "View Help and Documentation" {
+        Start-Process "https://helpsite.com/path/"
+        $lastAction = "Launched helpsite in browser window."
+      } default {
+        # $lastAction = "Invalid option - please try again."
+  
+        # Write-Host $lastAction
+      }
+    }
+  }
+  until ($action -eq 'q')
 }
 
 #endregion
@@ -164,33 +283,23 @@ function Show-Menu {
 #region #*      Main Program Loop
 ################################################################################
 
-$Config = Get-Config -ConfigFilePath $ConfigFilePath
+$Config = Initialize-FromConfig -ConfigFilePath $configFilePath -Debug $debug -Env $env
 
+# can perform add'l functions here to enrich object data, attribs
 
-do {
-  Show-Menu -Menu $Menu
-  $selection = (Read-Host "Select an option (or 'Q' to quit): ").toLower()
-  switch ($selection)
-  {
-    '1' {
-      # do thing here (eg assign var, call function, etc)
-      'You chose option #1'
-    } '2' {
-      # do thing here (eg assign var, call function, etc)
-      'You chose option #2'
-    } '3' {
-      # do thing here (eg assign var, call function, etc)
-      'You chose option #3'
-    }
-  }
-  pause
-}
-until ($selection -eq 'q')
+$menu = Build-Menu -config $config
+$lastAction = $false
+Select-MenuOption -config $config -LastAction $lastAction -menu $menu -debug $config.debug
 
 
 #endregion
 
+Show-DebugOutput -labBench $labBench
+Write-Host "Exiting..."
+
 # Stop Logging
 Stop-Transcript
+
+break
 
 # Dev References (not user references, which should be included in .LINKs at top)

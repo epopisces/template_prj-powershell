@@ -1,10 +1,20 @@
 {
   "references": "https://helpful.link.here",
   "arg1" : "value1",
-  "dev" : {
-    "arg2" : "value2"
-  },
-  "prod" : {
-    "arg3" : "value3"
+  "debug": false,
+  "defaultEnvironment": "dev",
+  "environments": {
+    "dev": {
+      "attr1": "val1"
+    },
+    "tst": {
+      "attr1": "val1"
+    },
+    "stg": {
+      "attr1": "val1"
+    },
+    "prd": {
+      "attr1": "val1"
+    }
   }
 }
